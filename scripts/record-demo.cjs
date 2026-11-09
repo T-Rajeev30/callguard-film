@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Headless Chromium drives the REAL VaaniLens app (live Gnani API calls) and records it:
  *   video  - CDP screencast frames -> constant 30 fps
  *   audio  - every clip the app actually played (Timbre replies, the audio sent to Prisma) + the live "mic" file
@@ -15,7 +15,7 @@ const puppeteer = require('puppeteer-core');
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'out', 'rec');
 const FRAMES = path.join(OUT, 'frames');
-const APP = process.env.APP_URL || 'http://127.0.0.1:5173';
+const APP = process.env.APP_URL || 'http://127.0.0.1:5173/demo/';
 const W = 1920, H = 1080, FPS = 30;
 const GPU = process.env.REC_GPU === '1';
 

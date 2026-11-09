@@ -1,4 +1,4 @@
-﻿// VaaniLens backend: a tiny API that runs inside the Vite dev server (server-side only).
+// VaaniLens backend: a tiny API that runs inside the Vite dev server (server-side only).
 // Your GNANI_API_KEY is read from .env here and never sent to the browser.
 'use strict';
 const fs = require('node:fs');
@@ -16,6 +16,22 @@ if (fs.existsSync(envFile)) {
 const KEY = () => process.env.GNANI_API_KEY || '';
 const MOCK = () => process.env.MOCK === '1' || !KEY();
 const GNANI = 'https://api.vachana.ai';
+const crypto = require('node:crypto');
+
+// ---- Credit saver: identical audio/text never hits Gnani twice (per warm instance) + per-IP limit.
+const CACHE = new Map(); const CACHE_MAX = 200;
+const hash = (b) => crypto.createHash('sha1').update(b).digest('hex');
+const cacheGet = (k) => { const v = CACHE.get(k); if (v) { CACHE.delete(k); CACHE.set(k, v); } return v; };
+const cacheSet = (k, v) => { CACHE.set(k, v); if (CACHE.size > CACHE_MAX) CACHE.delete(CACHE.keys().next().value); };
+const HITS = new Map(); const LIMIT = Number(process.env.RATE_LIMIT || 30), WINDOW = 10 * 60 * 1000;
+const ipOf = (req) => String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '?').split(',')[0].trim();
+function limited(req) {
+  const ip = ipOf(req), now = Date.now(); const h = (HITS.get(ip) || []).filter((t) => now - t < WINDOW);
+  h.push(now); HITS.set(ip, h); return h.length > LIMIT;
+}
+// One JSON line per call -> Vercel > Logs (search "vaanilens").
+const log = (req, evt, extra) => console.log(JSON.stringify({ app: 'vaanilens', evt, country: req.headers['x-vercel-ip-country'] || '-',
+  ref: (req.headers.referer || '').slice(0, 80), ...extra }));
 
 const readBody = (req) => new Promise((res, rej) => {
   const chunks = []; req.on('data', (c) => chunks.push(c)); req.on('end', () => res(Buffer.concat(chunks))); req.on('error', rej);
@@ -52,6 +68,10 @@ async function handler(req, res, next) {
     if (url.pathname === '/api/transcribe' && req.method === 'POST') {
       const audio = await readBody(req);
       if (audio.length > 3_000_000) return json(res, 413, { error: 'Audio too long - keep it under ~60 s' });
+      const ck = 'stt:' + hash(audio) + url.search;
+      const hit = cacheGet(ck);
+      if (hit) { log(req, 'transcribe', { cached: true }); return json(res, 200, { ...hit, cached: true, latency_ms: 0 }); }
+      if (!MOCK() && limited(req)) return json(res, 429, { error: 'Demo limit reached - try again in a few minutes' });
       const lang = url.searchParams.get('lang') || 'hi-IN';
       const model = url.searchParams.get('model') || 'prisma-v3.0';
       const format = url.searchParams.get('format') || 'codemix';
@@ -64,6 +84,7 @@ async function handler(req, res, next) {
       const r = await fetch(`${GNANI}/stt/v3`, { method: 'POST', headers: { 'X-API-Key-ID': KEY() }, body: form });
       const body = await r.json().catch(() => ({}));
       if (!r.ok) return json(res, r.status, { error: 'Prisma error', detail: body });
+      cacheSet(ck, body); log(req, 'transcribe', { cached: false, ms: Date.now() - t0 });
       return json(res, 200, { ...body, latency_ms: Date.now() - t0 });
     }
 
@@ -76,9 +97,11 @@ async function handler(req, res, next) {
       const { text, voice = 'Shivani', language = 'hi-IN', model = 'timbre-v3.0' } = JSON.parse((await readBody(req)).toString() || '{}');
       if (!text || String(text).length > 300) return json(res, 400, { error: 'Text must be 1-300 characters' });
       const t0 = Date.now();
-      let wav;
-      if (MOCK()) wav = toneWav();
-      else {
+      const ck = 'tts:' + hash(Buffer.from([text, voice, language, model].join('|')));
+      let wav = MOCK() ? toneWav() : cacheGet(ck);
+      if (wav && !MOCK()) log(req, 'speak', { cached: true });
+      if (!wav) {
+        if (limited(req)) return json(res, 429, { error: 'Demo limit reached - try again in a few minutes' });
         const r = await fetch(`${GNANI}/api/v1/tts/inference`, {
           method: 'POST', headers: { 'X-API-Key-ID': KEY(), 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, voice, language, model, speed: 1.0,
@@ -86,6 +109,7 @@ async function handler(req, res, next) {
         });
         if (!r.ok) return json(res, r.status, { error: 'Timbre error', detail: await r.text() });
         wav = fixWav(Buffer.from(await r.arrayBuffer()));
+        cacheSet(ck, wav); log(req, 'speak', { cached: false, ms: Date.now() - t0 });
       }
       res.setHeader('Content-Type', 'audio/wav');
       res.setHeader('X-Latency-Ms', String(Date.now() - t0));
