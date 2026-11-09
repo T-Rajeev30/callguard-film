@@ -1,4 +1,4 @@
-﻿{
+{
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npx vite build --config vite.config.mjs",
   "outputDirectory": "dist-app",
