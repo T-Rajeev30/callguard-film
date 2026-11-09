@@ -24,11 +24,11 @@ let _blob = null;
 async function blobLib() { if (!_blob) _blob = await import('@vercel/blob'); return _blob; }
 
 // Write a JSON file at `key` (e.g. "events/2026-11-10/....json"). Returns true on success.
-async function putJson(key, obj) {
+async function putJson(key, obj, { overwrite = false } = {}) {
   const data = JSON.stringify(obj);
   if (useBlob()) {
     const { put } = await blobLib();
-    await put(key, data, { access: 'public', contentType: 'application/json', addRandomSuffix: false, cacheControlMaxAge: 0 });
+    await put(key, data, { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: overwrite, cacheControlMaxAge: 0 });
     return true;
   }
   const file = path.join(LOCAL_DIR, key);
@@ -107,6 +107,19 @@ function buildEvent(req, event, data = {}) {
   };
 }
 
+// Geo/device fields for a visitor record, derived from edge headers. No IP, no full UA.
+function visitorMeta(req) {
+  const ua = String(hdr(req, 'user-agent') || '');
+  return {
+    country: String(hdr(req, 'x-vercel-ip-country') || ''),
+    region: dec(hdr(req, 'x-vercel-ip-country-region')),
+    city: dec(hdr(req, 'x-vercel-ip-city')),
+    device: deviceOf(ua),
+    browser: browserOf(ua),
+    referrer: refHost(String(hdr(req, 'referer') || '')),
+  };
+}
+
 // Public: record an event. Never throws, never blocks the caller meaningfully.
 async function track(req, event, data = {}) {
   try {
@@ -121,7 +134,53 @@ async function track(req, event, data = {}) {
 
 const emailHash = (email) => crypto.createHash('sha256').update(String(email).trim().toLowerCase()).digest('hex');
 
+// ---- LinkedIn gate helpers ----------------------------------------------------------------
+const LINKEDIN_RE = /^https?:\/\/(www\.|[a-z]{2}\.)?linkedin\.com\/in\/[A-Za-z0-9\-_%]{3,100}\/?$/;
+// Accept a bare "linkedin.com/in/x" too, and normalise to a canonical https URL.
+function normalizeLinkedin(input) {
+  let s = String(input || '').trim();
+  if (!s) return null;
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  if (!LINKEDIN_RE.test(s)) return null;
+  try {
+    const u = new URL(s);
+    const host = u.hostname.toLowerCase();
+    let path = u.pathname.replace(/\/+$/, ''); // drop trailing slash
+    return `https://${host}${path}`;
+  } catch { return null; }
+}
+const linkedinHash = (url) => crypto.createHash('sha256').update(String(url).trim().toLowerCase()).digest('hex');
+
+// ---- Signed, short-lived demo session token (HMAC with STATS_KEY) --------------------------
+const b64url = (buf) => Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64url = (s) => Buffer.from(String(s).replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+const tokenSecret = () => process.env.STATS_KEY || process.env.GNANI_API_KEY || 'vaanilens-dev-secret';
+function hmac(data) { return crypto.createHmac('sha256', tokenSecret()).update(data).digest(); }
+function timingEqual(a, b) {
+  const ba = Buffer.from(String(a)), bb = Buffer.from(String(b));
+  if (ba.length !== bb.length) return false;
+  try { return crypto.timingSafeEqual(ba, bb); } catch { return false; }
+}
+// Token = base64url(payload).base64url(hmac). Payload: { lh, exp }.
+function signToken(lh, ttlMs = 2 * 60 * 60 * 1000) {
+  const payload = b64url(JSON.stringify({ lh, exp: Date.now() + ttlMs }));
+  return `${payload}.${b64url(hmac(payload))}`;
+}
+function verifyToken(token) {
+  try {
+    const [payload, sig] = String(token || '').split('.');
+    if (!payload || !sig) return null;
+    const expected = b64url(hmac(payload));
+    if (!timingEqual(sig, expected)) return null;
+    const obj = JSON.parse(unb64url(payload).toString());
+    if (!obj || typeof obj.exp !== 'number' || obj.exp < Date.now()) return null;
+    return obj; // { lh, exp }
+  } catch { return null; }
+}
+
 module.exports = {
   track, putJson, listKeys, readJson, buildEvent, emailHash,
   ALLOWED_EVENTS, deviceOf, browserOf, refHost, useBlob,
+  LINKEDIN_RE, normalizeLinkedin, linkedinHash, visitorMeta,
+  signToken, verifyToken, timingEqual,
 };

@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Player } from '@remotion/player';
+import { gsap } from 'gsap';
 import { SignalsLive, LIVE_FRAMES, LiveSignal } from '../src/live/SignalsLive';
 import { prepareWav, recordMic } from './audio';
 import { track } from './track';
+import { DemoGate, readDemoToken, clearDemoToken, demoHeaders } from './gate';
 import '@fontsource/anton/400.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/600.css';
@@ -39,6 +41,7 @@ const Btn: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: 'li
 );
 
 export const App: React.FC = () => {
+  const [token, setToken] = useState<string | null>(() => readDemoToken());
   const [health, setHealth] = useState<{ gnaniKey: boolean; mock: boolean } | null>(null);
   const [source, setSource] = useState<{ blob: Blob; name: string } | null>(null);
   const [phone, setPhone] = useState(false);
@@ -77,7 +80,8 @@ export const App: React.FC = () => {
       setErr(''); setRes(null); setSpeak(null); setStage('prisma');
       const { wav, seconds } = await prepareWav(source.blob, phone);
       setPrepared({ url: URL.createObjectURL(wav), seconds });
-      const t = await fetch(`/api/transcribe?lang=${encodeURIComponent(lang)}&model=prisma-v3.0&format=codemix`, { method: 'POST', body: wav, headers: { 'Content-Type': 'audio/wav' } });
+      const t = await fetch(`/api/transcribe?lang=${encodeURIComponent(lang)}&model=prisma-v3.0&format=codemix`, { method: 'POST', body: wav, headers: { 'Content-Type': 'audio/wav', ...demoHeaders(token) } });
+      if (t.status === 401) { clearDemoToken(); setToken(null); return; }
       const tj = await t.json();
       if (!t.ok) throw new Error(`Prisma: ${JSON.stringify(tj.detail || tj.error)}`);
       setStage('analyze');
@@ -91,7 +95,8 @@ export const App: React.FC = () => {
     if (!res) return;
     setSpeaking(true);
     try {
-      const r = await fetch('/api/speak', { method: 'POST', body: JSON.stringify({ text: res.reply, voice: 'Shivani', language: 'hi-IN', model: 'timbre-v3.0' }) });
+      const r = await fetch('/api/speak', { method: 'POST', headers: { 'Content-Type': 'application/json', ...demoHeaders(token) }, body: JSON.stringify({ text: res.reply, voice: 'Shivani', language: 'hi-IN', model: 'timbre-v3.0' }) });
+      if (r.status === 401) { clearDemoToken(); setToken(null); return; }
       if (!r.ok) throw new Error(`Timbre: ${await r.text()}`);
       const url = URL.createObjectURL(await r.blob());
       setSpeak({ url, ms: Number(r.headers.get('X-Latency-Ms')), mock: r.headers.get('X-Mock') === '1' });
@@ -101,6 +106,8 @@ export const App: React.FC = () => {
 
   const mock = health?.mock;
   const steps: [string, boolean][] = [['Gnani Prisma', stage === 'prisma'], ['VaaniLens', stage === 'analyze'], ['Gnani Timbre', speaking]];
+
+  if (!token) return <DemoGate onPass={(t) => { setToken(t); track('page_view'); }} />;
 
   return (
     <div style={{ fontFamily: 'Inter, sans-serif', minHeight: '100vh', padding: '22px 28px 40px', maxWidth: 1500, margin: '0 auto' }}>

@@ -30,6 +30,12 @@ function limited(req) {
   const ip = ipOf(req), now = Date.now(); const h = (HITS.get(ip) || []).filter((t) => now - t < WINDOW);
   h.push(now); HITS.set(ip, h); return h.length > LIMIT;
 }
+// Separate, stricter limiter for the demo gate: 10 requests / IP / 10 min.
+const VISITS = new Map();
+function visitorLimited(req) {
+  const ip = ipOf(req), now = Date.now(); const h = (VISITS.get(ip) || []).filter((t) => now - t < WINDOW);
+  h.push(now); VISITS.set(ip, h); return h.length > 10;
+}
 // One JSON line per call -> Vercel > Logs (search "vaanilens").
 const log = (req, evt, extra) => console.log(JSON.stringify({ app: 'vaanilens', evt, country: req.headers['x-vercel-ip-country'] || '-',
   ref: (req.headers.referer || '').slice(0, 80), ...extra }));
@@ -60,63 +66,35 @@ function toneWav(seconds = 1.2) { // mock audio only
   return b;
 }
 
-// Aggregate every stored event + waitlist entry into the dashboard payload.
+// Build the demo-users list for /stats. Raw events + waitlist stay in Blob but aren't shown here.
+// Feature usage per user is derived from transcribe/speak events that carry the LinkedIn hash (lh).
 async function buildStats() {
-  const inc = (o, k) => { if (!k && k !== 0) return; o[k] = (o[k] || 0) + 1; };
-  const topN = (o, n = 15) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => ({ key: k, count: v }));
-
-  const entries = await T.listKeys('events/').catch(() => []);
-  const events = [];
-  for (const e of entries) { const j = await T.readJson(e); if (j && j.event) events.push(j); }
-  events.sort((a, b) => String(a.t).localeCompare(String(b.t)));
-
-  const totals = {}, perDay = {}, cities = {}, countries = {}, referrers = {}, utm = {}, devices = {}, browsers = {};
-  const uniqByEvent = { page_view: new Set(), landing: new Set(), demo: new Set() };
-  for (const ev of events) {
-    inc(totals, ev.event);
-    inc(perDay, String(ev.t).slice(0, 10));
-    if (ev.city) inc(cities, ev.city + (ev.country ? `, ${ev.country}` : ''));
-    if (ev.country) inc(countries, ev.country);
-    if (ev.referrer) inc(referrers, ev.referrer);
-    if (ev.utm_source) inc(utm, ev.utm_source);
-    if (ev.device) inc(devices, ev.device);
-    if (ev.browser) inc(browsers, ev.browser);
+  // Which hashes used which feature.
+  const evEntries = await T.listKeys('events/').catch(() => []);
+  const used = new Map(); // lh -> { transcribe, speak }
+  for (const e of evEntries) {
+    const j = await T.readJson(e);
+    if (!j || !j.lh || (j.event !== 'transcribe' && j.event !== 'speak')) continue;
+    const u = used.get(j.lh) || { transcribe: false, speak: false };
+    u[j.event] = true; used.set(j.lh, u);
   }
 
-  // Funnel: landing views -> demo views -> transcribe -> speak.
-  const page = (p) => String(p || '');
-  const landingViews = events.filter((e) => e.event === 'page_view' && !page(e.path).includes('/demo')).length;
-  const demoViews = events.filter((e) => e.event === 'page_view' && page(e.path).includes('/demo')).length;
-  const funnel = [
-    { step: 'Landing views', count: landingViews },
-    { step: 'Demo views', count: demoViews },
-    { step: 'Transcribe', count: totals.transcribe || 0 },
-    { step: 'Speak', count: totals.speak || 0 },
-  ];
+  const vEntries = await T.listKeys('visitors/').catch(() => []);
+  const visitors = [];
+  for (const e of vEntries) {
+    const v = await T.readJson(e);
+    if (!v || !v.linkedin) continue;
+    const u = used.get(v.hash) || { transcribe: false, speak: false };
+    visitors.push({
+      linkedin: v.linkedin, city: v.city || '', region: v.region || '', country: v.country || '',
+      device: v.device || '', browser: v.browser || '', referrer: v.referrer || '', utm_source: v.utm_source || '',
+      first_seen: v.firstSeen || v.lastSeen || '', last_seen: v.lastSeen || v.firstSeen || '',
+      visits: Number(v.visits) || 1, used: { transcribe: u.transcribe, speak: u.speak },
+    });
+  }
+  visitors.sort((a, b) => String(b.last_seen).localeCompare(String(a.last_seen))); // newest first
 
-  const wEntries = await T.listKeys('waitlist/').catch(() => []);
-  const waitlist = [];
-  for (const e of wEntries) { const j = await T.readJson(e); if (j && j.email) waitlist.push(j); }
-  waitlist.sort((a, b) => String(b.t).localeCompare(String(a.t)));
-  // Don't leak full emails into the dashboard payload beyond what's needed to contact.
-  const waitlistOut = waitlist.map((w) => ({ t: w.t, name: w.name, email: w.email, business: w.business, city: w.city, country: w.country }));
-
-  return {
-    generated_at: new Date().toISOString(),
-    total_events: events.length,
-    totals,
-    per_day: Object.entries(perDay).sort((a, b) => a[0].localeCompare(b[0])).map(([day, count]) => ({ day, count })),
-    top_cities: topN(cities),
-    countries: topN(countries),
-    referrers: topN(referrers),
-    utm_source: topN(utm),
-    devices: topN(devices),
-    browsers: topN(browsers),
-    funnel,
-    waitlist_count: waitlistOut.length,
-    waitlist: waitlistOut,
-    latest_events: events.slice(-100).reverse(),
-  };
+  return { generated_at: new Date().toISOString(), visitor_count: visitors.length, visitors };
 }
 
 async function handler(req, res, next) {
@@ -126,17 +104,19 @@ async function handler(req, res, next) {
     if (url.pathname === '/api/health') return json(res, 200, { gnaniKey: Boolean(KEY()), mock: MOCK() });
 
     if (url.pathname === '/api/transcribe' && req.method === 'POST') {
+      const session = T.verifyToken(req.headers['x-demo-token'] || url.searchParams.get('t') || '');
+      if (!session) return json(res, 401, { error: 'Demo session required. Open the demo through the start screen.' });
       const audio = await readBody(req);
       if (audio.length > 3_000_000) return json(res, 413, { error: 'Audio too long - keep it under ~60 s' });
       const ck = 'stt:' + hash(audio) + url.search;
       const hit = cacheGet(ck);
-      if (hit) { log(req, 'transcribe', { cached: true }); await T.track(req, 'transcribe', { extra: { cached: true } }); return json(res, 200, { ...hit, cached: true, latency_ms: 0 }); }
+      if (hit) { log(req, 'transcribe', { cached: true }); await T.track(req, 'transcribe', { extra: { cached: true, lh: session.lh } }); return json(res, 200, { ...hit, cached: true, latency_ms: 0 }); }
       if (!MOCK() && limited(req)) return json(res, 429, { error: 'Demo limit reached - try again in a few minutes' });
       const lang = url.searchParams.get('lang') || 'hi-IN';
       const model = url.searchParams.get('model') || 'prisma-v3.0';
       const format = url.searchParams.get('format') || 'codemix';
       const t0 = Date.now();
-      if (MOCK()) { await T.track(req, 'transcribe', { extra: { cached: false, mock: true } }); return json(res, 200, { mock: true, transcript: 'Sir, kal tak pakka payment kar dunga.', detected_language_code: 'hi-IN', model, latency_ms: 0 }); }
+      if (MOCK()) { await T.track(req, 'transcribe', { extra: { cached: false, mock: true, lh: session.lh } }); return json(res, 200, { mock: true, transcript: 'Sir, kal tak pakka payment kar dunga.', detected_language_code: 'hi-IN', model, latency_ms: 0 }); }
       const form = new FormData();
       form.append('audio_file', new Blob([new Uint8Array(audio)], { type: 'audio/wav' }), 'call.wav');
       if (model === 'prisma-v3.0') { form.append('model', model); form.append('format', format); }
@@ -145,7 +125,7 @@ async function handler(req, res, next) {
       const body = await r.json().catch(() => ({}));
       if (!r.ok) return json(res, r.status, { error: 'Prisma error', detail: body });
       cacheSet(ck, body); log(req, 'transcribe', { cached: false, ms: Date.now() - t0 });
-      await T.track(req, 'transcribe', { extra: { cached: false } });
+      await T.track(req, 'transcribe', { extra: { cached: false, lh: session.lh } });
       return json(res, 200, { ...body, latency_ms: Date.now() - t0 });
     }
 
@@ -155,6 +135,8 @@ async function handler(req, res, next) {
     }
 
     if (url.pathname === '/api/speak' && req.method === 'POST') {
+      const session = T.verifyToken(req.headers['x-demo-token'] || url.searchParams.get('t') || '');
+      if (!session) return json(res, 401, { error: 'Demo session required. Open the demo through the start screen.' });
       const { text, voice = 'Shivani', language = 'hi-IN', model = 'timbre-v3.0' } = JSON.parse((await readBody(req)).toString() || '{}');
       if (!text || String(text).length > 300) return json(res, 400, { error: 'Text must be 1-300 characters' });
       const t0 = Date.now();
@@ -173,7 +155,7 @@ async function handler(req, res, next) {
         wav = fixWav(Buffer.from(await r.arrayBuffer()));
         cacheSet(ck, wav); log(req, 'speak', { cached: false, ms: Date.now() - t0 });
       }
-      await T.track(req, 'speak', { extra: { cached: speakCached, mock: MOCK() } });
+      await T.track(req, 'speak', { extra: { cached: speakCached, mock: MOCK(), lh: session.lh } });
       res.setHeader('Content-Type', 'audio/wav');
       res.setHeader('X-Latency-Ms', String(Date.now() - t0));
       res.setHeader('X-Mock', MOCK() ? '1' : '0');
@@ -212,11 +194,42 @@ async function handler(req, res, next) {
       return json(res, 200, { ok: true, message: "You're on the list. We'll be in touch." });
     }
 
-    // ---- Stats: protected by ?key=STATS_KEY. Aggregates events + waitlist for the dashboard. -
+    // ---- Demo gate: validate a LinkedIn URL, store/dedupe the visitor, return a signed token. -
+    if (url.pathname === '/api/visitor' && req.method === 'POST') {
+      const raw = await readBody(req);
+      if (raw.length > 2048) return json(res, 413, { ok: false, error: 'Too large' });
+      let p = {}; try { p = JSON.parse(raw.toString() || '{}'); } catch { return json(res, 400, { ok: false, error: 'Bad request' }); }
+      const linkedin = T.normalizeLinkedin(p.linkedin);
+      if (!linkedin) return json(res, 400, { ok: false, error: 'Please enter a valid LinkedIn profile URL, e.g. linkedin.com/in/your-name' });
+      if (visitorLimited(req)) return json(res, 429, { ok: false, error: 'Too many attempts. Please try again in a few minutes.' });
+      const h = T.linkedinHash(linkedin);
+      const token = T.signToken(h);
+      // Persist the visitor (best-effort). Dedupe by LinkedIn hash: bump visits + lastSeen.
+      try {
+        const key = `visitors/${h}.json`;
+        const existing = await T.listKeys('visitors/').catch(() => []);
+        const found = existing.find((e) => e.pathname === key || e.pathname.endsWith(`/${h}.json`) || e.pathname.endsWith(`${h}.json`));
+        const now = new Date().toISOString();
+        const meta = T.visitorMeta(req);
+        const utm = String(p.utm_source || '').slice(0, 60);
+        let rec;
+        if (found) {
+          const prev = (await T.readJson(found)) || {};
+          rec = { ...prev, ...meta, linkedin, hash: h, firstSeen: prev.firstSeen || now, lastSeen: now,
+            visits: (Number(prev.visits) || 0) + 1, utm_source: prev.utm_source || utm };
+        } else {
+          rec = { linkedin, hash: h, firstSeen: now, lastSeen: now, visits: 1, utm_source: utm, ...meta };
+        }
+        await T.putJson(key, rec, { overwrite: true });
+      } catch { /* never break the gate if storage fails */ }
+      return json(res, 200, { ok: true, token });
+    }
+
+    // ---- Stats: protected by ?key=STATS_KEY (constant-time). Returns the demo-users list. -----
     if (url.pathname === '/api/stats' && req.method === 'GET') {
       const key = url.searchParams.get('key') || '';
       const STATS_KEY = process.env.STATS_KEY || '';
-      if (!STATS_KEY || key !== STATS_KEY) return json(res, 401, { error: 'Unauthorized' });
+      if (!STATS_KEY || !T.timingEqual(key, STATS_KEY)) return json(res, 401, { error: 'Unauthorized' });
       const out = await buildStats();
       if (url.searchParams.get('format') === 'json-download') {
         res.setHeader('Content-Type', 'application/json');

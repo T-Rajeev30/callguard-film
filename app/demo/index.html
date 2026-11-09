@@ -11,6 +11,10 @@
     button:focus-visible, select:focus-visible { outline: 2px solid #C6FF1F; outline-offset: 2px; }
     .demo-grid { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 2.2fr); gap: 20px; }
     @media (max-width: 820px) { .demo-grid { grid-template-columns: 1fr; } }
+    @keyframes vaani-breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+    @keyframes vaani-blink { 0%,92%,100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+    @keyframes vaani-bar { 0%,100% { transform: scaleY(0.6); } 50% { transform: scaleY(1.1); } }
+    @media (prefers-reduced-motion: reduce) { svg[aria-label="Vaani, the VaaniLens mascot"] *, svg[aria-label="Vaani, the VaaniLens mascot"] { animation: none !important; } }
   </style>
 </head>
 <body>
