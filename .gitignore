@@ -1,0 +1,9 @@
+node_modules/
+out/
+.env
+.python-cmd
+dist-app/
+public/demo/
+.browsers/
+.chromium-path
+.vercel/

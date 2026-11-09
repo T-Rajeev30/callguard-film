@@ -1,0 +1,46 @@
+{
+  "fps": 30,
+  "duration": 46,
+  "scenes": {
+    "call": [0, 3],
+    "freeze": [3, 8],
+    "shatter": [8, 14],
+    "prisma": [14, 21],
+    "signals": [21, 29],
+    "timbre": [29, 35],
+    "reveal": [35, 41],
+    "lockup": [41, 46]
+  },
+  "line": "Sir, kal tak pakka payment kar dunga.",
+  "words": [0.25, 0.6, 0.85, 1.15, 1.5, 1.95, 2.2],
+  "reply": "Namaste Rahul ji, kal ke payment ke liye ek chhota sa reminder.",
+  "replyDeva": "नमस्ते राहुल जी, कल के पेमेंट के लिए एक छोटा सा रिमाइंडर।",
+  "cues": {
+    "ring": [0.0],
+    "wordTick": [0.25, 0.6, 0.85, 1.15, 1.5, 1.95, 2.2],
+    "tapeStop": [3.0],
+    "bigImpact": [3.8, 21.4, 41.0],
+    "impact": [6.8, 11.5, 22.4, 23.6, 24.8],
+    "whoosh": [8.0, 14.0, 29.0, 35.0],
+    "glitch": [8.0],
+    "slab": [8.3, 8.6, 8.9, 9.2, 9.5, 9.8, 10.1],
+    "typeStart": 14.6,
+    "typeEnd": 17.6,
+    "uiTick": [15.2, 16.4, 18.5, 35.4, 35.9, 36.4, 36.9, 37.4],
+    "riser": [[4.6, 6.8], [20.0, 21.2], [39.4, 40.6]],
+    "shimmer": [[21.4, 25.4]],
+    "silence": [[3.2, 3.75], [21.2, 21.4], [40.6, 41.0]],
+    "signature": [41.3]
+  },
+  "music": {
+    "bpm": 96,
+    "sections": [[4.6, 8.0, 0.3], [8.0, 14.0, 0.5], [14.0, 20.0, 0.6], [21.4, 29.0, 1.0], [29.0, 35.0, 0.55], [35.0, 39.4, 0.85]]
+  },
+  "voice": [
+    { "id": "d1_caller", "at": 0.25, "role": "caller", "lang": "hi-IN", "text": "Sir, kal tak pakka payment kar dunga.", "deva": "सर, कल तक पक्का पेमेंट कर दूँगा।", "caption": false },
+    { "id": "n1", "at": 11.8, "role": "narrator", "lang": "en-IN", "text": "Seven words. More than one meaning.", "caption": true },
+    { "id": "n2", "at": 21.5, "role": "narrator", "lang": "en-IN", "text": "A commitment. A deadline. A follow-up.", "caption": false },
+    { "id": "d2_timbre", "at": 29.6, "role": "timbre", "lang": "hi-IN", "text": "Namaste Rahul ji, kal ke payment ke liye ek chhota sa reminder.", "deva": "नमस्ते राहुल जी, कल के पेमेंट के लिए एक छोटा सा रिमाइंडर।", "caption": false },
+    { "id": "n3", "at": 41.6, "role": "narrator", "lang": "en-IN", "text": "VaaniLens. Hear beyond the words.", "caption": false }
+  ]
+}
