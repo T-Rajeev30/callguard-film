@@ -4,87 +4,77 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>VaaniLens · Stats</title>
+  <title>VaaniLens · Demo users</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    :root { --lime:#C6FF1F; --violet:#5B2BFF; --violet-soft:#A996FF; --ink:#0B0B0F; --ink-2:#15141D;
-      --cream:#F2EDE3; --mute:#9A97A6; --line:#2A2836; }
+    :root { --lime:#C6FF1F; --violet-soft:#A996FF; --ink:#0B0B0F; --ink-2:#15141D; --cream:#F2EDE3; --mute:#9A97A6; --line:#2A2836; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--ink); color:var(--cream); font:400 15px/1.55 Inter, system-ui, sans-serif; }
-    .wrap { max-width:1180px; margin:0 auto; padding:24px 20px 80px; }
-    h1 { font-family:Anton, sans-serif; font-weight:400; letter-spacing:1px; font-size:30px; margin:0; text-transform:uppercase; }
-    h2 { font-size:16px; letter-spacing:2px; text-transform:uppercase; color:var(--mute); margin:34px 0 14px; }
-    a { color:var(--lime); }
-    .top { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+    .wrap { max-width:1100px; margin:0 auto; padding:24px 20px 80px; }
+    h1 { font-family:Anton, sans-serif; font-weight:400; letter-spacing:1px; font-size:28px; margin:0; text-transform:uppercase; }
     .logo b { color:var(--violet-soft); }
+    a { color:var(--lime); }
+    .top { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:20px; }
     .spacer { margin-left:auto; }
     .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 18px; border-radius:10px; font-weight:700;
       font-size:14px; cursor:pointer; border:1px solid var(--line); background:transparent; color:var(--cream); }
     .btn-lime { background:var(--lime); color:var(--ink); border-color:transparent; }
     .btn:disabled { opacity:.5; cursor:not-allowed; }
     input { background:var(--ink-2); color:var(--cream); border:1px solid var(--line); border-radius:10px;
-      padding:11px 14px; font:inherit; font-size:15px; min-width:220px; }
+      padding:11px 14px; font:inherit; font-size:15px; }
     input:focus { outline:2px solid var(--lime); outline-offset:1px; }
-    .gate { max-width:420px; margin:12vh auto 0; text-align:center; display:flex; flex-direction:column; gap:14px; }
+    .gate { max-width:420px; margin:14vh auto 0; text-align:center; display:flex; flex-direction:column; gap:14px; }
+    .gate input { min-width:240px; }
     .msg { color:#FF9B9B; font-size:14px; min-height:18px; }
-    .cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:14px; }
-    .card { background:var(--ink-2); border:1px solid var(--line); border-radius:16px; padding:18px; }
-    .card .n { font-family:Anton, sans-serif; font-size:40px; line-height:1; color:var(--lime); }
-    .card .k { color:var(--mute); font-size:13px; letter-spacing:1px; text-transform:uppercase; margin-top:6px; }
-    .cols { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:20px; }
-    .panel { background:var(--ink-2); border:1px solid var(--line); border-radius:16px; padding:18px; }
-    .panel h3 { margin:0 0 12px; font-size:14px; letter-spacing:1px; text-transform:uppercase; color:var(--mute); }
+    .count { font-family:"JetBrains Mono", monospace; color:var(--mute); font-size:13px; }
+    .panel { background:var(--ink-2); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+    .scroll { overflow:auto; }
     table { width:100%; border-collapse:collapse; font-size:14px; }
-    th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); }
-    th { color:var(--mute); font-weight:600; font-size:12px; letter-spacing:1px; text-transform:uppercase; }
-    td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
-    .funnel .row { margin:10px 0; }
-    .funnel .lab { display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
-    .funnel .bar { height:14px; border-radius:8px; background:linear-gradient(90deg, var(--lime), var(--violet-soft)); }
-    .funnel .track { background:var(--ink); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
-    .muted { color:var(--mute); }
-    .scroll { max-height:380px; overflow:auto; }
+    th, td { text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+    th { color:var(--mute); font-weight:600; font-size:12px; letter-spacing:1px; text-transform:uppercase;
+      position:sticky; top:0; background:var(--ink-2); cursor:default; }
+    tbody tr:hover { background:rgba(255,255,255,.02); }
+    td.num { text-align:right; font-variant-numeric:tabular-nums; }
+    .yes { color:var(--lime); font-weight:700; } .no { color:#55525f; }
+    .li { max-width:280px; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:bottom; }
+    .mut { color:var(--mute); }
     .hidden { display:none; }
-    code { font-family:ui-monospace, monospace; font-size:13px; color:var(--violet-soft); }
-    @media (max-width:560px) { input { min-width:0; width:100%; } }
+    .searchbar { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .searchbar input { flex:1; min-width:220px; }
+    @media (max-width:560px) { .gate input { min-width:0; width:100%; } }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- key gate -->
     <div class="gate" id="gate">
-      <h1 class="logo">VAANI<b>LENS</b> STATS</h1>
-      <p class="muted">Enter the stats key to view analytics.</p>
+      <h1 class="logo">VAANI<b>LENS</b></h1>
+      <p class="mut">Private dashboard. Enter the stats key.</p>
       <input id="keyInput" type="password" placeholder="STATS_KEY" autocomplete="off" />
-      <button class="btn btn-lime" id="loadBtn">View dashboard</button>
+      <button class="btn btn-lime" id="loadBtn">View demo users</button>
       <div class="msg" id="gateMsg"></div>
     </div>
 
-    <!-- dashboard -->
     <div id="dash" class="hidden">
       <div class="top">
-        <h1 class="logo">VAANI<b>LENS</b> STATS</h1>
-        <span class="muted" id="genAt"></span>
+        <h1 class="logo">DEMO USERS</h1>
+        <span class="count" id="count"></span>
         <span class="spacer"></span>
         <button class="btn" id="refreshBtn">↻ Refresh</button>
-        <button class="btn btn-lime" id="downloadBtn">Download all JSON</button>
+        <button class="btn btn-lime" id="downloadBtn">Download JSON</button>
       </div>
-
-      <h2>Totals</h2>
-      <div class="cards" id="totals"></div>
-
-      <h2>Funnel</h2>
-      <div class="panel funnel" id="funnel"></div>
-
-      <h2>Breakdown</h2>
-      <div class="cols" id="breakdown"></div>
-
-      <h2>Waitlist (<span id="wlCount">0</span>)</h2>
-      <div class="panel scroll"><table id="waitlist"></table></div>
-
-      <h2>Latest events</h2>
-      <div class="panel scroll"><table id="events"></table></div>
+      <div class="searchbar">
+        <input id="search" type="search" placeholder="Search LinkedIn, city, country, device…" autocomplete="off" />
+      </div>
+      <div class="panel scroll">
+        <table>
+          <thead><tr>
+            <th>LinkedIn profile</th><th>City</th><th>Country</th><th>Device</th>
+            <th>First seen</th><th>Last seen</th><th class="num">Visits</th><th>Transcribe</th><th>Speak</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
     </div>
   </div>
   <script type="module" src="../stats.ts"></script>

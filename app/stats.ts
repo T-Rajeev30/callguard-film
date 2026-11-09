@@ -1,100 +1,70 @@
-// VaaniLens stats dashboard — fetches /api/stats?key=… and renders cards, a funnel, tables.
-// The key is held in memory only (and sessionStorage for convenience); never sent anywhere but our API.
-type Pair = { key: string; count: number };
-type Stats = {
-  generated_at: string; total_events: number; totals: Record<string, number>;
-  per_day: { day: string; count: number }[];
-  top_cities: Pair[]; countries: Pair[]; referrers: Pair[]; utm_source: Pair[]; devices: Pair[]; browsers: Pair[];
-  funnel: { step: string; count: number }[];
-  waitlist_count: number; waitlist: { t: string; name: string; email: string; business: string; city: string; country: string }[];
-  latest_events: Record<string, unknown>[];
+// VaaniLens /stats — private demo-users list only. The key lives in sessionStorage only and is
+// sent solely to our own /api/stats. Raw events stay in Blob but aren't shown here.
+type Visitor = {
+  linkedin: string; city: string; region: string; country: string; device: string; browser: string;
+  first_seen: string; last_seen: string; visits: number; used: { transcribe: boolean; speak: boolean };
 };
+type Stats = { generated_at: string; visitor_count: number; visitors: Visitor[] };
 
 const $ = (id: string) => document.getElementById(id)!;
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+const fmt = (t: string) => { try { return t ? new Date(t).toLocaleString() : '—'; } catch { return '—'; } };
 let KEY = '';
+let ALL: Visitor[] = [];
 
 const SS = {
   get: () => { try { return sessionStorage.getItem('vl_stats_key') || ''; } catch { return ''; } },
   set: (v: string) => { try { sessionStorage.setItem('vl_stats_key', v); } catch { /* ignore */ } },
 };
 
-async function load(key: string) {
+async function load(key: string): Promise<Stats> {
   const r = await fetch(`/api/stats?key=${encodeURIComponent(key)}`);
   if (r.status === 401) throw new Error('Wrong key (or STATS_KEY not set on the server).');
   if (!r.ok) throw new Error(`Server error (${r.status}).`);
   return (await r.json()) as Stats;
 }
 
-function pairTable(title: string, rows: Pair[], col = 'Value'): string {
-  const body = rows.length
-    ? rows.map((p) => `<tr><td>${esc(p.key)}</td><td class="num">${p.count}</td></tr>`).join('')
-    : `<tr><td class="muted" colspan="2">No data yet</td></tr>`;
-  return `<div class="panel"><h3>${esc(title)}</h3><table><thead><tr><th>${esc(col)}</th><th class="num">Count</th></tr></thead><tbody>${body}</tbody></table></div>`;
+function rowHtml(v: Visitor): string {
+  const yn = (b: boolean) => (b ? '<span class="yes">yes</span>' : '<span class="no">no</span>');
+  return `<tr>
+    <td><a class="li" href="${esc(v.linkedin)}" target="_blank" rel="noopener">${esc(v.linkedin.replace(/^https?:\/\//, ''))}</a></td>
+    <td>${esc(v.city) || '<span class="mut">—</span>'}</td>
+    <td>${esc(v.country) || '<span class="mut">—</span>'}</td>
+    <td>${esc(v.device) || '<span class="mut">—</span>'}</td>
+    <td class="mut">${esc(fmt(v.first_seen))}</td>
+    <td class="mut">${esc(fmt(v.last_seen))}</td>
+    <td class="num">${v.visits}</td>
+    <td>${yn(v.used.transcribe)}</td>
+    <td>${yn(v.used.speak)}</td>
+  </tr>`;
 }
 
-function render(s: Stats) {
-  $('genAt').textContent = `generated ${new Date(s.generated_at).toLocaleString()}`;
+function render(list: Visitor[]) {
+  $('count').textContent = `${list.length} user${list.length === 1 ? '' : 's'}`;
+  $('rows').innerHTML = list.length ? list.map(rowHtml).join('') : `<tr><td colspan="9" class="mut">No demo users yet.</td></tr>`;
+}
 
-  // totals cards
-  const totalRows = Object.entries(s.totals).sort((a, b) => b[1] - a[1]);
-  $('totals').innerHTML =
-    `<div class="card"><div class="n">${s.total_events}</div><div class="k">Total events</div></div>` +
-    `<div class="card"><div class="n">${s.waitlist_count}</div><div class="k">Waitlist</div></div>` +
-    totalRows.map(([k, v]) => `<div class="card"><div class="n">${v}</div><div class="k">${esc(k)}</div></div>`).join('');
-
-  // funnel
-  const max = Math.max(1, ...s.funnel.map((f) => f.count));
-  $('funnel').innerHTML = s.funnel.map((f) => {
-    const pct = Math.round((f.count / max) * 100);
-    return `<div class="row"><div class="lab"><span>${esc(f.step)}</span><span class="muted">${f.count}</span></div>
-      <div class="track"><div class="bar" style="width:${Math.max(pct, f.count ? 4 : 0)}%"></div></div></div>`;
-  }).join('');
-
-  // breakdown panels
-  $('breakdown').innerHTML = [
-    pairTable('Top cities', s.top_cities, 'City'),
-    pairTable('Countries', s.countries, 'Country'),
-    pairTable('Referrers', s.referrers, 'Host'),
-    pairTable('UTM source', s.utm_source, 'Source'),
-    pairTable('Devices', s.devices, 'Device'),
-    pairTable('Browsers', s.browsers, 'Browser'),
-    pairTable('Per day', s.per_day.map((d) => ({ key: d.day, count: d.count })), 'Day'),
-  ].join('');
-
-  // waitlist
-  $('wlCount').textContent = String(s.waitlist_count);
-  $('waitlist').innerHTML = s.waitlist.length
-    ? `<thead><tr><th>When</th><th>Name</th><th>Email</th><th>Business</th><th>City</th></tr></thead><tbody>` +
-      s.waitlist.map((w) => `<tr><td class="muted">${esc(new Date(w.t).toLocaleString())}</td><td>${esc(w.name)}</td><td>${esc(w.email)}</td><td>${esc(w.business)}</td><td>${esc(w.city)}</td></tr>`).join('') + `</tbody>`
-    : `<tbody><tr><td class="muted">No signups yet</td></tr></tbody>`;
-
-  // latest events
-  $('events').innerHTML = s.latest_events.length
-    ? `<thead><tr><th>When</th><th>Event</th><th>Path</th><th>City</th><th>Device</th><th>Ref</th></tr></thead><tbody>` +
-      s.latest_events.map((e: any) => `<tr><td class="muted">${esc(new Date(e.t).toLocaleString())}</td><td>${esc(e.event)}</td><td class="muted">${esc(e.path)}</td><td>${esc(e.city)}</td><td>${esc(e.device)}</td><td class="muted">${esc(e.referrer)}</td></tr>`).join('') + `</tbody>`
-    : `<tbody><tr><td class="muted">No events yet</td></tr></tbody>`;
+function applySearch() {
+  const q = ($('search') as HTMLInputElement).value.trim().toLowerCase();
+  if (!q) return render(ALL);
+  render(ALL.filter((v) => [v.linkedin, v.city, v.country, v.device, v.browser].join(' ').toLowerCase().includes(q)));
 }
 
 async function show(key: string) {
-  const gateMsg = $('gateMsg');
-  gateMsg.textContent = '';
+  const gateMsg = $('gateMsg'); gateMsg.textContent = '';
   try {
     const s = await load(key);
-    KEY = key; SS.set(key);
-    $('gate').classList.add('hidden');
-    $('dash').classList.remove('hidden');
-    render(s);
-  } catch (e) {
-    gateMsg.textContent = (e as Error).message;
-  }
+    KEY = key; SS.set(key); ALL = s.visitors || [];
+    $('gate').classList.add('hidden'); $('dash').classList.remove('hidden');
+    applySearch();
+  } catch (e) { gateMsg.textContent = (e as Error).message; }
 }
 
 $('loadBtn').addEventListener('click', () => show(($('keyInput') as HTMLInputElement).value.trim()));
 $('keyInput').addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Enter') show(($('keyInput') as HTMLInputElement).value.trim()); });
 $('refreshBtn').addEventListener('click', () => show(KEY));
+$('search').addEventListener('input', applySearch);
 $('downloadBtn').addEventListener('click', () => { window.location.href = `/api/stats?key=${encodeURIComponent(KEY)}&format=json-download`; });
 
-// auto-load if a key is remembered from this session
 const remembered = SS.get();
 if (remembered) { ($('keyInput') as HTMLInputElement).value = remembered; show(remembered); }
