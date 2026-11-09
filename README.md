@@ -74,4 +74,4 @@ Recorded CC0 foley (Sonic Pi / freesound), FluidR3 instrument samples (CC BY 3.0
 ## Before posting
 
 - The film says "Hackathon prototype · Simulated call". Keep that, and don't present VaaniLens as production-ready.
-- Remotion licence: free for individuals and teams of up to 3 (remotion.dev/license).
+- Remotion licence: free for individuals and teams of up to 3 (remotion.dev/license)
