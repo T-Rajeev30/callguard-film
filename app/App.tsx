@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Player } from '@remotion/player';
 import { SignalsLive, LIVE_FRAMES, LiveSignal } from '../src/live/SignalsLive';
 import { prepareWav, recordMic } from './audio';
+import { track } from './track';
 import '@fontsource/anton/400.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/600.css';
@@ -53,14 +54,17 @@ export const App: React.FC = () => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { fetch('/api/health').then((r) => r.json()).then(setHealth).catch(() => setHealth(null)); }, []);
+  useEffect(() => { track('page_view'); }, []);
 
   const pick = async (blob: Blob, name: string) => { setSource({ blob, name }); setRes(null); setSpeak(null); setStage('idle'); setErr(''); };
   const loadSample = async (s: typeof SAMPLES[number]) => {
+    track('demo_sample_played', { sample: s.id });
     const r = await fetch(s.file);
     if (!r.ok) { setErr(`Sample not found: run "npm run samples" once (uses Gnani Timbre).`); return; }
     pick(await r.blob(), s.label);
   };
   const startRec = async () => {
+    track('mic_used');
     setRecT(0);
     const r = await recordMic(20, setRecT);
     setRec(r);
@@ -121,7 +125,7 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(0, 2.2fr)', gap: 20 }}>
+      <div className="demo-grid">
         <Card step="01" title="Call audio">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {SAMPLES.map((s) => <Btn key={s.id} onClick={() => loadSample(s)}>{s.label}</Btn>)}
@@ -129,7 +133,7 @@ export const App: React.FC = () => {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {rec ? <Btn tone="violet" onClick={rec.stop}>■ Stop ({recT}s)</Btn> : <Btn onClick={startRec}>● Record mic</Btn>}
             <Btn onClick={() => fileRef.current?.click()}>Upload audio</Btn>
-            <input ref={fileRef} type="file" accept="audio/*" hidden onChange={(e) => e.target.files?.[0] && pick(e.target.files[0], e.target.files[0].name)} />
+            <input ref={fileRef} type="file" accept="audio/*" hidden onChange={(e) => { if (e.target.files?.[0]) { track('upload_used'); pick(e.target.files[0], e.target.files[0].name); } }} />
           </div>
           <div style={{ fontSize: 14, color: C.mute }}>Selected: <b style={{ color: C.cream }}>{source?.name ?? 'nothing yet'}</b> · synthetic calls only, no real customer data</div>
           <label style={{ display: 'flex', gap: 10, alignItems: 'center', cursor: 'pointer' }}>

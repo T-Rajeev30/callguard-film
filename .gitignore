@@ -7,3 +7,4 @@ public/demo/
 .browsers/
 .chromium-path
 .vercel/
+.data/

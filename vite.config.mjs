@@ -14,5 +14,5 @@ export default defineConfig({
   plugins: [react(), { name: 'vaanilens-api', configureServer(server) { server.middlewares.use(handler); }, configurePreviewServer(server) { server.middlewares.use(handler); } }],
   server: { port: 5173, open: process.env.NO_OPEN !== '1', strictPort: true },
   build: { outDir: '../dist-app', emptyOutDir: true,
-    rollupOptions: { input: { main: here('./app/index.html'), demo: here('./app/demo/index.html') } } },
+    rollupOptions: { input: { main: here('./app/index.html'), demo: here('./app/demo/index.html'), stats: here('./app/stats/index.html') } } },
 });

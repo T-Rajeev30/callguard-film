@@ -4,105 +4,424 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>VaaniLens - Hear beyond the words</title>
-  <meta name="description" content="VaaniLens hears the promise, the deadline and the follow-up inside Hinglish calls. Built in India on Gnani Prisma (speech-to-text) and Gnani Timbre (text-to-speech)." />
+  <meta name="description" content="VaaniLens turns every Hinglish business call into a clear next step. Built in India for SMBs on Gnani Prisma (speech-to-text) and Gnani Timbre (text-to-speech)." />
   <meta property="og:title" content="VaaniLens - Hear beyond the words" />
   <meta property="og:description" content="Made-in-India voice AI that understands calls the way India actually talks." />
   <meta property="og:image" content="/og.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&family=Noto+Sans+Devanagari:wght@600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@500;600&display=swap" rel="stylesheet" />
   <style>
-    :root { --lime:#C6FF1F; --violet:#5B2BFF; --ink:#0B0B0F; --cream:#F2EDE3; --mute:#9A97A6; --card:#15141D; --line:#2A2836; }
-    * { box-sizing: border-box; } html { scroll-behavior: smooth; }
-    body { margin:0; background:var(--ink); color:var(--cream); font:400 17px/1.6 Inter, system-ui, sans-serif; }
-    a { color:inherit; } .wrap { max-width:1120px; margin:0 auto; padding:0 24px; }
-    nav { display:flex; align-items:center; gap:16px; padding:22px 0; }
-    .logo { font:400 28px Anton, Impact, 'Arial Narrow', sans-serif; letter-spacing:1px; } .logo b { color:var(--violet); font-weight:400; }
-    .btn { display:inline-block; padding:14px 26px; border-radius:999px; font-weight:800; text-decoration:none; transition:transform .15s, box-shadow .15s; }
-    .btn:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(198,255,31,.25); }
-    .lime { background:var(--lime); color:var(--ink); } .ghost { border:1.5px solid var(--line); }
-    nav .btn { margin-left:auto; padding:10px 20px; }
-    .hero { padding:70px 0 50px; } .tag { font:600 13px/1 ui-monospace, monospace; letter-spacing:3px; color:var(--lime); text-transform:uppercase; }
-    h1 { font:400 clamp(52px, 9vw, 120px)/0.95 Anton, Impact, 'Arial Narrow', sans-serif; text-transform:uppercase; margin:18px 0; }
-    h1 em { font-style:normal; color:var(--lime); }
-    .quote { font:600 clamp(20px,2.6vw,28px)/1.4 Inter; color:var(--mute); max-width:760px; }
-    .quote span { color:var(--cream); } .cta { display:flex; gap:14px; flex-wrap:wrap; margin-top:30px; }
-    h2 { font:400 clamp(36px,5vw,60px)/1 Anton, Impact, 'Arial Narrow', sans-serif; text-transform:uppercase; margin:0 0 26px; }
-    section { padding:60px 0; border-top:1px solid var(--line); }
-    .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:18px; }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:22px; padding:26px; }
-    .card h3 { margin:6px 0 8px; font-size:20px; } .card p { margin:0; color:var(--mute); }
-    .num { font:400 44px/1 Anton, Impact, sans-serif; color:var(--lime); }
-    .flag { background:linear-gradient(135deg, #FF9933 0 33%, #F2EDE3 33% 66%, #138808 66%); height:6px; border-radius:6px; margin-bottom:22px; max-width:220px; }
-    .hi { font-family:'Noto Sans Devanagari', sans-serif; color:var(--lime); }
-    .pill { display:inline-block; margin:4px 6px 0 0; padding:6px 14px; border-radius:999px; border:1px solid var(--line); font-size:14px; color:var(--mute); }
-    .big { background:var(--lime); color:var(--ink); border-radius:28px; padding:48px 36px; text-align:center; }
-    .big h2 { margin-bottom:12px; } .big p { margin:0 0 24px; font-weight:600; }
-    .big .btn { background:var(--ink); color:var(--lime); }
-    footer { padding:40px 0 60px; color:var(--mute); font-size:14px; }
-    .reveal { opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; } .reveal.on { opacity:1; transform:none; }
-    @media (prefers-reduced-motion: reduce) { .reveal { opacity:1; transform:none; transition:none; } }
+    :root {
+      --lime:#C6FF1F; --violet:#5B2BFF; --violet-soft:#A996FF; --ink:#0B0B0F; --ink-2:#15141D;
+      --cream:#F2EDE3; --mute:#9A97A6; --line:#2A2836; --card:#15141D;
+      --s1:8px; --s2:16px; --s3:24px; --s4:32px; --s5:48px; --s6:64px; --s7:96px; --s8:128px;
+      --maxw:1200px; --r:24px;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+    body { margin:0; background:var(--ink); color:var(--cream); overflow-x:hidden;
+      font:400 17px/1.6 Inter, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:inherit; text-decoration:none; }
+    img { max-width:100%; display:block; }
+    .wrap { max-width:var(--maxw); margin:0 auto; padding:0 var(--s3); }
+    h1,h2,h3 { margin:0; }
+    .anton { font-family:Anton, Impact, 'Arial Narrow', sans-serif; font-weight:400; text-transform:uppercase; letter-spacing:.5px; }
+    .hi { font-family:'Noto Sans Devanagari', Inter, sans-serif; }
+
+    /* buttons */
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:14px 26px; border-radius:999px;
+      font-weight:700; font-size:16px; cursor:pointer; border:1.5px solid transparent;
+      transition:transform .15s ease, box-shadow .15s ease, background .15s ease; }
+    .btn:hover { transform:translateY(-2px); }
+    .btn-lime { background:var(--lime); color:var(--ink); }
+    .btn-lime:hover { box-shadow:0 12px 34px rgba(198,255,31,.28); }
+    .btn-ghost { border-color:var(--line); color:var(--cream); background:transparent; }
+    .btn-ghost:hover { border-color:var(--violet-soft); box-shadow:0 10px 30px rgba(91,43,255,.18); }
+
+    /* nav */
+    .nav { position:sticky; top:0; z-index:50; backdrop-filter:blur(12px);
+      background:rgba(11,11,15,.72); border-bottom:1px solid transparent; transition:border-color .2s; }
+    .nav.scrolled { border-bottom-color:var(--line); }
+    .nav-inner { display:flex; align-items:center; gap:var(--s3); padding:14px 0; }
+    .logo { font-family:Anton, sans-serif; font-weight:400; font-size:26px; letter-spacing:1px; }
+    .logo b { color:var(--violet-soft); font-weight:400; }
+    .nav-links { display:flex; gap:var(--s3); margin-left:auto; align-items:center; }
+    .nav-links a.link { color:var(--mute); font-size:15px; font-weight:500; transition:color .15s; }
+    .nav-links a.link:hover { color:var(--cream); }
+    .nav-cta { padding:10px 20px; font-size:15px; }
+    .menu-btn { display:none; }
+
+    /* hero */
+    .hero { padding:var(--s7) 0 var(--s6); position:relative; }
+    .eyebrow { display:inline-block; font:600 12px/1 ui-monospace, monospace; letter-spacing:3px;
+      color:var(--lime); text-transform:uppercase; padding:8px 14px; border:1px solid var(--line);
+      border-radius:999px; margin-bottom:var(--s3); }
+    .hero h1 { font-size:clamp(52px, 10vw, 128px); line-height:.92; margin-bottom:var(--s3); }
+    .hero h1 .em { color:var(--lime); }
+    .hero h1 .ch { display:inline-block; will-change:transform, opacity; }
+    .oneliner { font-size:clamp(20px, 2.6vw, 30px); font-weight:700; color:var(--lime); max-width:760px; margin:0 0 var(--s2); line-height:1.25; }
+    .subline { font-size:clamp(18px, 2.2vw, 24px); font-weight:500; color:var(--mute); max-width:720px; margin:0 0 var(--s2); }
+    .subline .q { color:var(--cream); font-weight:600; }
+    .hero-ctas { display:flex; gap:var(--s2); flex-wrap:wrap; margin-top:var(--s4); }
+    .wave { display:flex; align-items:center; gap:5px; height:64px; margin-top:var(--s5); }
+    .wave span { width:6px; min-height:6px; border-radius:6px; background:var(--lime); opacity:.85;
+      transform-origin:center; }
+    .wave span:nth-child(3n) { background:var(--violet-soft); }
+
+    /* generic section */
+    section.block { padding:var(--s7) 0; border-top:1px solid var(--line); }
+    .kicker { font:600 12px/1 ui-monospace, monospace; letter-spacing:3px; color:var(--violet-soft);
+      text-transform:uppercase; margin-bottom:var(--s2); }
+    h2.sec { font-size:clamp(34px, 5.5vw, 60px); line-height:1; margin-bottom:var(--s3); }
+    .lead { color:var(--mute); font-size:clamp(17px,2vw,20px); max-width:680px; margin:0 0 var(--s5); }
+
+    /* problem */
+    .promise-line { font-size:clamp(30px, 6vw, 72px); line-height:1.1; font-weight:600;
+      display:flex; flex-wrap:wrap; gap:.3em; margin:var(--s4) 0; }
+    .promise-line .w { color:#4a4857; transition:color .2s; }
+    .promise-line .w.lit { color:var(--cream); }
+    .promise-line .w.key-kal.lit { color:var(--lime); }
+    .promise-line .w.key-pakka.lit { color:var(--violet-soft); }
+    .chips { display:flex; gap:var(--s2); flex-wrap:wrap; margin-top:var(--s3); min-height:40px; }
+    .chip { opacity:0; transform:translateY(10px); display:inline-flex; align-items:center; gap:8px;
+      padding:10px 18px; border-radius:999px; border:1px solid var(--line); background:var(--ink-2);
+      font-weight:600; font-size:15px; }
+    .chip.show { opacity:1; transform:none; }
+    .chip .dot { width:10px; height:10px; border-radius:50%; }
+
+    /* how it works */
+    .steps { display:grid; gap:var(--s3); }
+    .step { display:grid; grid-template-columns:auto 1fr; gap:var(--s3); align-items:start;
+      background:var(--card); border:1px solid var(--line); border-radius:28px; padding:var(--s4); }
+    .step-no { font-family:Anton, sans-serif; font-size:48px; line-height:1; color:var(--lime); }
+    .step h3 { font-size:22px; margin-bottom:8px; }
+    .step p { color:var(--mute); margin:0 0 var(--s2); }
+    .mock { background:var(--ink); border:1px solid var(--line); border-radius:16px; padding:14px 16px;
+      font:500 14px/1.5 ui-monospace, monospace; color:var(--cream); }
+    .mock .mlabel { color:var(--mute); font-size:11px; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+    .mock .tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; margin-right:4px; }
+    .tag-en { background:rgba(198,255,31,.14); color:var(--lime); }
+    .tag-hi { background:rgba(169,150,255,.16); color:var(--violet-soft); }
+    .mbar { display:flex; gap:3px; align-items:flex-end; height:28px; margin-top:6px; }
+    .mbar i { width:4px; background:var(--violet-soft); border-radius:3px; }
+
+    /* generic grid of cards */
+    .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:var(--s3); }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:var(--s3);
+      transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+    .card h3 { font-size:19px; margin-bottom:8px; }
+    .card p { color:var(--mute); margin:0; font-size:15.5px; }
+    .tilt:hover { border-color:var(--violet-soft); box-shadow:0 18px 50px rgba(0,0,0,.4); }
+
+    /* live proof */
+    .proof { display:grid; grid-template-columns:1.1fr 1fr; gap:var(--s5); align-items:center; }
+    .shot { position:relative; border:1px solid var(--line); border-radius:var(--r); overflow:hidden;
+      background:linear-gradient(160deg, #17161f, #0d0d13); aspect-ratio:16/10;
+      display:flex; align-items:center; justify-content:center; }
+    .shot .frame { text-align:center; color:var(--mute); padding:var(--s3); }
+    .shot .frame .big { font-family:Anton, sans-serif; font-size:30px; color:var(--cream); margin-bottom:6px; }
+    .shot .play { width:68px; height:68px; border-radius:50%; background:var(--lime); color:var(--ink);
+      display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto var(--s2); }
+    .badge-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:var(--s3); }
+    .badge { font:600 13px/1 ui-monospace, monospace; color:var(--mute); border:1px solid var(--line);
+      border-radius:999px; padding:8px 14px; }
+
+    /* indigenous */
+    .tricolor { height:6px; border-radius:6px; max-width:240px; margin-bottom:var(--s3);
+      background:linear-gradient(90deg,#FF9933 0 33%, #F2EDE3 33% 66%, #138808 66%); }
+
+    /* from demo to deployment */
+    .status-banner { display:inline-flex; align-items:center; gap:10px; padding:10px 18px; border-radius:999px;
+      border:1px solid var(--line); background:var(--ink-2); font-weight:600; font-size:15px; margin-bottom:var(--s3); }
+    .status-banner .live { color:var(--lime); } .status-banner .road { color:var(--violet-soft); }
+    .status-banner b { color:var(--cream); font-weight:700; }
+    .deploy-table { width:100%; border-collapse:collapse; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+    .deploy-table th, .deploy-table td { text-align:left; padding:16px 18px; border-bottom:1px solid var(--line); vertical-align:top; }
+    .deploy-table thead th { background:var(--ink-2); color:var(--mute); font-size:12px; letter-spacing:2px; text-transform:uppercase; font-weight:600; }
+    .deploy-table tbody tr:last-child td { border-bottom:none; }
+    .deploy-table td.area { font-weight:700; color:var(--cream); width:30%; }
+    .deploy-table td p { margin:0; color:var(--mute); font-size:15px; }
+    .deploy-table .st { display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700;
+      letter-spacing:.5px; white-space:nowrap; }
+    .st-now { background:rgba(198,255,31,.14); color:var(--lime); }
+    .st-next { background:rgba(169,150,255,.16); color:var(--violet-soft); }
+    .deploy-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:var(--r); }
+    @media (max-width:640px) { .deploy-table th, .deploy-table td { padding:12px 12px; } .deploy-table { min-width:560px; } }
+
+    /* waitlist */
+    .waitlist { background:linear-gradient(160deg, #17161f, #100f16); border:1px solid var(--line);
+      border-radius:28px; padding:var(--s5); }
+    .form { display:grid; grid-template-columns:1fr 1fr; gap:var(--s2); margin-top:var(--s3); }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .field.full { grid-column:1 / -1; }
+    .field label { font-size:13px; color:var(--mute); font-weight:600; }
+    .field input, .field select { background:var(--ink); color:var(--cream); border:1px solid var(--line);
+      border-radius:12px; padding:13px 14px; font:inherit; font-size:16px; }
+    .field input:focus, .field select:focus { outline:2px solid var(--lime); outline-offset:1px; border-color:transparent; }
+    .consent { display:flex; gap:12px; align-items:flex-start; grid-column:1/-1; color:var(--mute); font-size:14.5px; }
+    .consent input { width:22px; height:22px; accent-color:var(--lime); flex:none; margin-top:2px; }
+    .form-msg { grid-column:1/-1; font-size:15px; min-height:22px; }
+    .form-msg.ok { color:var(--lime); } .form-msg.err { color:#FF9B9B; }
+    .privacy { color:var(--mute); font-size:13.5px; margin-top:var(--s3); }
+
+    /* footer */
+    footer { padding:var(--s5) 0 var(--s6); border-top:1px solid var(--line); color:var(--mute); font-size:14px; }
+    .foot-inner { display:flex; justify-content:space-between; gap:var(--s3); flex-wrap:wrap; align-items:center; }
+    footer a.link { color:var(--cream); font-weight:600; }
+
+    /* scroll reveal */
+    .reveal { opacity:0; transform:translateY(28px); }
+    .reveal.on { opacity:1; transform:none; transition:opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
+    .muted { color:var(--mute); }
+
+    /* responsive */
+    @media (max-width:860px) {
+      .proof { grid-template-columns:1fr; gap:var(--s4); }
+      .nav-links { display:none; }
+      .nav-links.open { display:flex; position:absolute; top:60px; right:16px; left:16px; flex-direction:column;
+        align-items:stretch; gap:var(--s2); background:var(--ink-2); border:1px solid var(--line);
+        border-radius:16px; padding:var(--s3); }
+      .nav-links.open a.link { padding:6px 0; }
+      .menu-btn { display:inline-flex; margin-left:auto; background:transparent; border:1px solid var(--line);
+        color:var(--cream); border-radius:12px; padding:10px 14px; font-size:20px; cursor:pointer; }
+    }
+    @media (max-width:560px) {
+      section.block { padding:var(--s6) 0; }
+      .hero { padding:var(--s6) 0 var(--s5); }
+      .form { grid-template-columns:1fr; }
+      .step { grid-template-columns:1fr; gap:var(--s2); padding:var(--s3); }
+      .step-no { font-size:40px; }
+      .waitlist { padding:var(--s4) var(--s3); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior:auto; }
+      .reveal { opacity:1; transform:none; transition:none; }
+      .chip { opacity:1; transform:none; }
+      .btn:hover, .card:hover { transform:none; }
+      .wave span { height:28px !important; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <nav><div class="logo">VAANI<b>LENS</b></div><a class="btn lime" href="/demo/">Try live demo</a></nav>
+  <!-- 1. NAV -->
+  <nav class="nav" id="nav">
+    <div class="wrap nav-inner">
+      <a href="#top" class="logo">VAANI<b>LENS</b></a>
+      <div class="nav-links" id="navLinks">
+        <a class="link" href="#how">How it works</a>
+        <a class="link" href="#usecases">Use cases</a>
+        <a class="link" href="#india">Made in India</a>
+        <a class="btn btn-lime nav-cta" href="/demo/" data-cta="nav">Try live demo</a>
+      </div>
+      <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">☰</button>
+    </div>
+  </nav>
 
+  <main id="top">
+    <!-- 2. HERO -->
     <header class="hero">
-      <div class="tag">Built in India - on Gnani speech AI</div>
-      <h1>Hear beyond <em>the words.</em></h1>
-      <p class="quote">"<span>Sir, kal tak pakka payment kar dunga.</span>" A transcript sees text. VaaniLens hears a <span>promise</span>, a <span>deadline</span> and the <span>follow-up</span> it needs, and replies in natural Hindi.</p>
-      <div class="cta">
-        <a class="btn lime" href="/demo/">Try it live - free, no login</a>
-        <a class="btn ghost" href="#how">How it works</a>
+      <div class="wrap">
+        <span class="eyebrow">Built in India · on Gnani speech AI</span>
+        <h1 class="anton" id="heroTitle">Hear beyond <span class="em">the words.</span></h1>
+        <p class="oneliner">Turns every Hinglish business call into a clear next step.</p>
+        <p class="subline">"<span class="q">Sir, kal tak pakka payment kar dunga.</span>" A transcript sees text. VaaniLens hears a promise, a deadline and the follow-up it needs — and replies in natural Hindi. Built for Indian SMBs: kiranas, clinics, lenders and service centres.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-lime" href="/demo/" data-cta="hero_demo">Try live demo — free, no login</a>
+          <a class="btn btn-ghost" href="#waitlist" data-cta="hero_waitlist">Join waitlist</a>
+        </div>
+        <div class="wave" id="wave" aria-hidden="true"></div>
       </div>
     </header>
 
-    <section id="how" class="reveal">
-      <h2>Listen. Understand. Respond.</h2>
-      <div class="grid">
-        <div class="card"><div class="num">01</div><h3>Gnani Prisma hears it</h3><p>Speech-to-text built for code-mixed Hinglish, the way India actually talks on calls.</p></div>
-        <div class="card"><div class="num">02</div><h3>VaaniLens finds what matters</h3><p>Commitments and how strong they are, deadlines like "kal" or "agle hafte", confusion, disputes, follow-ups.</p></div>
-        <div class="card"><div class="num">03</div><h3>Gnani Timbre speaks back</h3><p>Text-to-speech replies in a natural Indian voice: <span class="hi">"&#x920;&#x940;&#x915; &#x939;&#x948;, &#x939;&#x92E; &#x915;&#x932; &#x938;&#x941;&#x92C;&#x939; &#x92F;&#x93E;&#x926; &#x926;&#x93F;&#x932;&#x93E;&#x90F;&#x902;&#x917;&#x947;&#x964;"</span></p></div>
+    <!-- 3. PROBLEM -->
+    <section class="block" id="problem">
+      <div class="wrap">
+        <div class="kicker">The problem</div>
+        <h2 class="sec anton">A transcript sees text.<br />A business needs the promise.</h2>
+        <p class="lead">Scroll — and watch the words that actually matter light up. A call isn't a string of words; it's a commitment with a deadline attached.</p>
+        <div class="promise-line" id="promiseLine" aria-label="Sir, kal tak pakka payment kar dunga">
+          <span class="w">Sir,</span>
+          <span class="w key-kal" data-key="kal">kal</span>
+          <span class="w">tak</span>
+          <span class="w key-pakka" data-key="pakka">pakka</span>
+          <span class="w">payment</span>
+          <span class="w">kar</span>
+          <span class="w">dunga.</span>
+        </div>
+        <div class="chips">
+          <span class="chip" id="chipKal"><span class="dot" style="background:var(--lime)"></span>KAL → Deadline: by tomorrow</span>
+          <span class="chip" id="chipPakka"><span class="dot" style="background:var(--violet-soft)"></span>PAKKA → Strong commitment</span>
+        </div>
       </div>
     </section>
 
-    <section class="reveal">
-      <div class="flag"></div>
-      <h2>Indigenous by design</h2>
-      <div class="grid">
-        <div class="card"><h3>Indian voice stack</h3><p>Every word is heard and spoken by models from Gnani.ai, a Bengaluru voice-AI company. No foreign speech model in the loop.</p></div>
-        <div class="card"><h3>Made for Bharat, not translated for it</h3><p>Hinglish, Devanagari and "kal-parso" deadlines are first-class - not edge cases bolted onto an English system.</p></div>
-        <div class="card"><h3>Built for Indian businesses</h3><p>Kiranas, clinics, lenders and service shops run on phone calls. This is a voice layer that speaks their customers' language.</p></div>
+    <!-- 4. HOW IT WORKS -->
+    <section class="block" id="how">
+      <div class="wrap">
+        <div class="kicker">How it works</div>
+        <h2 class="sec anton">Listen. Understand. Respond.</h2>
+        <p class="lead">Three stages, one Indian voice stack. Prisma hears the call, VaaniLens reads the intent, Timbre speaks the reply.</p>
+        <div class="steps">
+          <article class="step reveal">
+            <div class="step-no">01</div>
+            <div>
+              <h3>Gnani Prisma listens</h3>
+              <p>Speech-to-text built for code-mixed Hinglish — the way India actually talks on calls.</p>
+              <div class="mock">
+                <div class="mlabel">Prisma · codemix transcript</div>
+                <span class="tag tag-en">EN</span>Sir, <span class="tag tag-hi">HI</span>kal tak pakka payment kar dunga.
+              </div>
+            </div>
+          </article>
+          <article class="step reveal">
+            <div class="step-no">02</div>
+            <div>
+              <h3>VaaniLens understands</h3>
+              <p>It finds the commitment and how strong it is, deadlines like "kal" or "agle hafte", plus confusion, disputes and follow-ups.</p>
+              <div class="mock">
+                <div class="mlabel">Signals</div>
+                <span class="tag tag-en">COMMITMENT</span><span class="tag tag-hi">DEADLINE · kal</span><span class="tag tag-en">FOLLOW-UP</span>
+              </div>
+            </div>
+          </article>
+          <article class="step reveal">
+            <div class="step-no">03</div>
+            <div>
+              <h3>Gnani Timbre replies in Hindi</h3>
+              <p>Text-to-speech answers in a natural Indian voice — no robotic translation, no English accent bolted on.</p>
+              <div class="mock">
+                <div class="mlabel">Timbre · hi-IN reply</div>
+                <span class="hi">ठीक है, हम कल सुबह याद दिलाएँगे।</span>
+                <div class="mbar" id="mbar" aria-hidden="true"></div>
+              </div>
+            </div>
+          </article>
+        </div>
       </div>
-      <p style="margin-top:22px"><span class="pill">Hinglish code-mix</span><span class="pill">Hindi replies</span><span class="pill">Gnani Prisma STT</span><span class="pill">Gnani Timbre TTS</span><span class="pill">Synthetic demo data only</span></p>
     </section>
 
-    <section class="reveal">
-      <h2>One voice stack. Every call.</h2>
-      <p style="color:var(--mute);margin-top:-12px">What comes next - roadmap, not built yet. Outbound promotional calls only to customers who opted in, following TRAI rules.</p>
-      <div class="grid">
-        <div class="card"><h3>Kirana &amp; retail</h3><p>"Is hafte atta par 10% off hai, sir!" - offer calls in the customer's language.</p></div>
-        <div class="card"><h3>Clinics</h3><p>"Kal subah 10 baje aapka appointment hai." - reminders that hear "can't make it".</p></div>
-        <div class="card"><h3>Lenders</h3><p>"Kal tak pakka?" - follow-ups that know a strong promise from a weak one.</p></div>
-        <div class="card"><h3>Every service</h3><p>"Service kaisi lagi?" - feedback calls where the answer is actually understood.</p></div>
+    <!-- 5. LIVE PROOF -->
+    <section class="block" id="proof">
+      <div class="wrap">
+        <div class="proof">
+          <div class="shot reveal">
+            <div class="frame">
+              <div class="play">▶</div>
+              <div class="big">The live demo</div>
+              <div>Sample call → transcript → signals → spoken Hindi reply</div>
+            </div>
+          </div>
+          <div class="reveal">
+            <div class="kicker">See it for real</div>
+            <h2 class="sec anton">Real Gnani APIs.<br />No edits.</h2>
+            <p class="lead">Pick a sample call or speak into your mic. You watch Prisma transcribe, VaaniLens pull out the signals, and Timbre speak the follow-up — live, in your browser.</p>
+            <a class="btn btn-lime" href="/demo/" data-cta="proof_demo">Open the live demo</a>
+            <div class="badge-row">
+              <span class="badge">Gnani Prisma v3.0</span>
+              <span class="badge">Gnani Timbre v3.0</span>
+              <span class="badge">Synthetic demo data only</span>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="reveal">
-      <div class="big">
-        <h2>Hear it for yourself</h2>
-        <p>Pick a sample call or speak into your mic. Real Gnani APIs, live.</p>
-        <a class="btn" href="/demo/">Open the live demo</a>
+    <!-- 6. USE CASES -->
+    <section class="block" id="usecases">
+      <div class="wrap">
+        <div class="kicker">Use cases · coming next, not built yet</div>
+        <h2 class="sec anton">One voice stack. Every call.</h2>
+        <p class="lead">A roadmap, not a claim. Outbound promotional calls only to customers who opted in, following TRAI rules.</p>
+        <div class="grid">
+          <div class="card tilt reveal"><h3>Kirana offer calls</h3><p>"Is hafte atta par 10% off hai, sir!" — opt-in offers in the customer's own language.</p></div>
+          <div class="card tilt reveal"><h3>Clinic reminders</h3><p>"Kal subah 10 baje appointment hai." — reminders that hear "can't make it".</p></div>
+          <div class="card tilt reveal"><h3>Payment follow-ups</h3><p>"Kal tak pakka?" — follow-ups that tell a strong promise from a weak one.</p></div>
+          <div class="card tilt reveal"><h3>Feedback calls</h3><p>"Service kaisi lagi?" — feedback where the answer is actually understood.</p></div>
+        </div>
       </div>
     </section>
 
-    <footer>VaaniLens is a hackathon prototype for the #GreatIndianAIInternshipChallenge by Gnani.ai. All calls in the demo are synthetic. Not affiliated with or endorsed by Gnani.ai.</footer>
-  </div>
-  <script>
-    const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && e.target.classList.add('on')), { threshold: 0.15 });
-    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
-  </script>
-  <script defer src="/_vercel/insights/script.js"></script>
+    <!-- 7. INDIGENOUS BY DESIGN -->
+    <section class="block" id="india">
+      <div class="wrap">
+        <div class="tricolor" aria-hidden="true"></div>
+        <div class="kicker">Indigenous by design</div>
+        <h2 class="sec anton">Made for Bharat,<br />not translated for it.</h2>
+        <div class="grid">
+          <div class="card reveal"><h3>Indian voice stack</h3><p>Every word is heard and spoken by models from Gnani.ai, a Bengaluru voice-AI company. No foreign speech model in the loop.</p></div>
+          <div class="card reveal"><h3>Hinglish & Devanagari, first-class</h3><p>Code-mix and "kal-parso" deadlines are native — not edge cases bolted onto an English system.</p></div>
+          <div class="card reveal"><h3>Built for Indian small businesses</h3><p>Kiranas, clinics, lenders and service shops run on phone calls. This is a voice layer that speaks their customers' language.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7b. FROM DEMO TO DEPLOYMENT -->
+    <section class="block" id="deployment">
+      <div class="wrap">
+        <div class="kicker">From demo to deployment</div>
+        <h2 class="sec anton">Working prototype today.<br />Roadmap below.</h2>
+        <div class="status-banner reveal">
+          <span><span class="live">●</span> <b>Live now:</b> the in-browser demo on real Gnani APIs</span>
+          <span>·</span>
+          <span><span class="road">●</span> <b>Planned:</b> everything in the table below</span>
+        </div>
+        <div class="deploy-scroll reveal">
+          <table class="deploy-table">
+            <thead><tr><th>Area</th><th>What it takes</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td class="area">Phone lines</td><td><p>Connect real calls through Indian telephony — Exotel or Knowlarity — instead of browser audio.</p></td><td><span class="st st-next">Roadmap</span></td></tr>
+              <tr><td class="area">CRM sync</td><td><p>Push each call's signals (commitment, deadline, follow-up) into the business's CRM or ledger.</p></td><td><span class="st st-next">Roadmap</span></td></tr>
+              <tr><td class="area">Opted-in outbound</td><td><p>Promotional calls only to customers who opted in, honouring TRAI DND and DLT registration.</p></td><td><span class="st st-next">Roadmap</span></td></tr>
+              <tr><td class="area">Consent & data residency</td><td><p>DPDP-aligned consent capture, with customer data stored in India.</p></td><td><span class="st st-next">Roadmap</span></td></tr>
+              <tr><td class="area">Caching, queues & cost</td><td><p>Response caching and call queues to keep per-call cost predictable at scale. <span class="muted">(Demo already caches identical audio/text.)</span></p></td><td><span class="st st-now">In demo</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. WAITLIST -->
+    <section class="block" id="waitlist">
+      <div class="wrap">
+        <div class="waitlist reveal">
+          <div class="kicker">Early access</div>
+          <h2 class="sec anton">Join the waitlist</h2>
+          <p class="lead" style="margin-bottom:var(--s2)">Tell us about your business and we'll reach out about early access. No spam.</p>
+          <form class="form" id="waitlistForm" novalidate>
+            <div class="field"><label for="wname">Name</label><input id="wname" name="name" type="text" autocomplete="name" required /></div>
+            <div class="field"><label for="wemail">Email</label><input id="wemail" name="email" type="email" autocomplete="email" required /></div>
+            <div class="field"><label for="wbiz">Business type</label>
+              <select id="wbiz" name="business" required>
+                <option value="">Select…</option>
+                <option>Kirana / retail</option>
+                <option>Clinic / healthcare</option>
+                <option>Lender / finance</option>
+                <option>Services / other</option>
+                <option>Just curious</option>
+              </select>
+            </div>
+            <div class="field"><label for="wcity">City (optional)</label><input id="wcity" name="city" type="text" autocomplete="address-level2" /></div>
+            <label class="consent"><input type="checkbox" id="wconsent" name="consent" required />
+              <span>I agree VaaniLens may store these details to contact me about early access.</span></label>
+            <div class="field full"><button class="btn btn-lime" type="submit" id="waitlistBtn" style="width:100%; justify-content:center;">Request early access</button></div>
+            <div class="form-msg" id="formMsg" role="status" aria-live="polite"></div>
+          </form>
+          <p class="privacy">We count visits by city and device to understand demand. <b>No IP addresses are stored.</b> Waitlist details are kept only with your consent, to contact you about early access.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 9. FOOTER -->
+  <footer>
+    <div class="wrap foot-inner">
+      <div>VaaniLens is a hackathon prototype for the #GreatIndianAIInternshipChallenge by Gnani.ai. All demo calls are synthetic. <b>Not affiliated with or endorsed by Gnani.ai.</b></div>
+      <a class="link" href="https://github.com/T-Rajeev30" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </footer>
+
+  <script type="module" src="./landing.ts"></script>
 </body>
 </html>
