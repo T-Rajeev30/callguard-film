@@ -115,7 +115,7 @@ async function handler(req, res, next) {
   if (!req.url.startsWith('/api/')) return next();
   const url = new URL(req.url, 'http://x');
   try {
-    if (url.pathname === '/api/health') return json(res, 200, { gnaniKey: Boolean(KEY()), mock: MOCK() });
+    if (url.pathname === '/api/health') return json(res, 200, { gnaniKey: Boolean(KEY()), mock: MOCK(), blob: T.useBlob(), statsKey: Boolean(process.env.STATS_KEY) });
 
     if (url.pathname === '/api/transcribe' && req.method === 'POST') {
       const session = T.verifyToken(req.headers['x-demo-token'] || url.searchParams.get('t') || '');
