@@ -4,7 +4,7 @@ type Visitor = {
   linkedin: string; city: string; region: string; country: string; device: string; browser: string;
   first_seen: string; last_seen: string; visits: number; used: { transcribe: boolean; speak: boolean };
 };
-type Stats = { generated_at: string; visitor_count: number; visitors: Visitor[] };
+type Stats = { generated_at: string; storage?: string; visitor_count: number; visitors: Visitor[] };
 
 const $ = (id: string) => document.getElementById(id)!;
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
@@ -56,6 +56,11 @@ async function show(key: string) {
     const s = await load(key);
     KEY = key; SS.set(key); ALL = s.visitors || [];
     $('gate').classList.add('hidden'); $('dash').classList.remove('hidden');
+    const warn = $('warn');
+    if (s.storage === 'local') {
+      warn.classList.remove('hidden');
+      warn.innerHTML = '<b>Storage is local, not Blob.</b> On Vercel this means no Blob store is connected, so visitor registrations are NOT being saved. Connect a Blob store (Storage → Blob → Connect to project) and redeploy.';
+    } else { warn.classList.add('hidden'); }
     applySearch();
   } catch (e) { gateMsg.textContent = (e as Error).message; }
 }

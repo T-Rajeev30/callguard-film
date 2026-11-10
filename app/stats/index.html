@@ -37,6 +37,8 @@
     tbody tr:hover { background:rgba(255,255,255,.02); }
     td.num { text-align:right; font-variant-numeric:tabular-nums; }
     .yes { color:var(--lime); font-weight:700; } .no { color:#55525f; }
+    .warn { background:#3a1b1b; border:1px solid #6b2b2b; color:#FFB4B4; border-radius:12px; padding:12px 16px; margin-bottom:16px; font-size:14px; }
+    .warn b { color:#fff; }
     .li { max-width:280px; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:bottom; }
     .mut { color:var(--mute); }
     .hidden { display:none; }
@@ -63,6 +65,7 @@
         <button class="btn" id="refreshBtn">↻ Refresh</button>
         <button class="btn btn-lime" id="downloadBtn">Download JSON</button>
       </div>
+      <div class="warn hidden" id="warn"></div>
       <div class="searchbar">
         <input id="search" type="search" placeholder="Search LinkedIn, city, country, device…" autocomplete="off" />
       </div>

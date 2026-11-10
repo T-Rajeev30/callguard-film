@@ -24,11 +24,12 @@ let _blob = null;
 async function blobLib() { if (!_blob) _blob = await import('@vercel/blob'); return _blob; }
 
 // Write a JSON file at `key` (e.g. "events/2026-11-10/....json"). Returns true on success.
-async function putJson(key, obj, { overwrite = false } = {}) {
+async function putJson(key, obj) {
   const data = JSON.stringify(obj);
   if (useBlob()) {
     const { put } = await blobLib();
-    await put(key, data, { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: overwrite, cacheControlMaxAge: 0 });
+    // We only ever write unique keys (append-only), so no overwrite is needed.
+    await put(key, data, { access: 'public', contentType: 'application/json', addRandomSuffix: false, cacheControlMaxAge: 0 });
     return true;
   }
   const file = path.join(LOCAL_DIR, key);
@@ -36,6 +37,7 @@ async function putJson(key, obj, { overwrite = false } = {}) {
   fs.writeFileSync(file, data);
   return true;
 }
+const storageMode = () => (useBlob() ? 'blob' : 'local');
 
 // List metadata for every blob under `prefix`. Returns [{ pathname, url }].
 async function listKeys(prefix) {
@@ -144,9 +146,10 @@ function normalizeLinkedin(input) {
   if (!LINKEDIN_RE.test(s)) return null;
   try {
     const u = new URL(s);
-    const host = u.hostname.toLowerCase();
-    let path = u.pathname.replace(/\/+$/, ''); // drop trailing slash
-    return `https://${host}${path}`;
+    // Canonicalise the host (drop www. and 2-letter country subdomains) so the same profile
+    // entered with or without a prefix dedupes to one record.
+    const path = u.pathname.replace(/\/+$/, ''); // drop trailing slash
+    return `https://www.linkedin.com${path}`;
   } catch { return null; }
 }
 const linkedinHash = (url) => crypto.createHash('sha256').update(String(url).trim().toLowerCase()).digest('hex');
@@ -181,6 +184,6 @@ function verifyToken(token) {
 module.exports = {
   track, putJson, listKeys, readJson, buildEvent, emailHash,
   ALLOWED_EVENTS, deviceOf, browserOf, refHost, useBlob,
-  LINKEDIN_RE, normalizeLinkedin, linkedinHash, visitorMeta,
+  LINKEDIN_RE, normalizeLinkedin, linkedinHash, visitorMeta, storageMode,
   signToken, verifyToken, timingEqual,
 };

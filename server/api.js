@@ -79,22 +79,36 @@ async function buildStats() {
     u[j.event] = true; used.set(j.lh, u);
   }
 
+  // Visitor files are append-only (one per visit). Aggregate per LinkedIn hash.
   const vEntries = await T.listKeys('visitors/').catch(() => []);
-  const visitors = [];
+  const byHash = new Map();
   for (const e of vEntries) {
     const v = await T.readJson(e);
     if (!v || !v.linkedin) continue;
-    const u = used.get(v.hash) || { transcribe: false, speak: false };
-    visitors.push({
-      linkedin: v.linkedin, city: v.city || '', region: v.region || '', country: v.country || '',
-      device: v.device || '', browser: v.browser || '', referrer: v.referrer || '', utm_source: v.utm_source || '',
-      first_seen: v.firstSeen || v.lastSeen || '', last_seen: v.lastSeen || v.firstSeen || '',
-      visits: Number(v.visits) || 1, used: { transcribe: u.transcribe, speak: u.speak },
-    });
+    const t = v.t || v.lastSeen || v.firstSeen || '';
+    const hash = v.hash || T.linkedinHash(v.linkedin);
+    const g = byHash.get(hash);
+    if (!g) {
+      byHash.set(hash, { linkedin: v.linkedin, hash, first_seen: t, last_seen: t, visits: 1,
+        city: v.city || '', region: v.region || '', country: v.country || '', device: v.device || '',
+        browser: v.browser || '', referrer: v.referrer || '', utm_source: v.utm_source || '' });
+    } else {
+      g.visits += 1;
+      if (t && (!g.first_seen || t < g.first_seen)) g.first_seen = t;
+      if (t && t >= g.last_seen) { // newest wins for the live fields
+        g.last_seen = t; g.city = v.city || g.city; g.region = v.region || g.region; g.country = v.country || g.country;
+        g.device = v.device || g.device; g.browser = v.browser || g.browser;
+      }
+      g.utm_source = g.utm_source || v.utm_source || '';
+    }
   }
+  const visitors = Array.from(byHash.values()).map((g) => {
+    const u = used.get(g.hash) || { transcribe: false, speak: false };
+    return { ...g, used: { transcribe: u.transcribe, speak: u.speak } };
+  });
   visitors.sort((a, b) => String(b.last_seen).localeCompare(String(a.last_seen))); // newest first
 
-  return { generated_at: new Date().toISOString(), visitor_count: visitors.length, visitors };
+  return { generated_at: new Date().toISOString(), storage: T.storageMode(), visitor_count: visitors.length, visitors };
 }
 
 async function handler(req, res, next) {
@@ -204,25 +218,17 @@ async function handler(req, res, next) {
       if (visitorLimited(req)) return json(res, 429, { ok: false, error: 'Too many attempts. Please try again in a few minutes.' });
       const h = T.linkedinHash(linkedin);
       const token = T.signToken(h);
-      // Persist the visitor (best-effort). Dedupe by LinkedIn hash: bump visits + lastSeen.
+      // Append-only: one file per visit at visitors/<date>/<ts>-<rand>.json. Never needs an
+      // overwrite (so it always works on Blob), and dedupe/firstSeen/lastSeen/visits are
+      // aggregated per LinkedIn hash at read time in buildStats().
+      let stored = false;
       try {
-        const key = `visitors/${h}.json`;
-        const existing = await T.listKeys('visitors/').catch(() => []);
-        const found = existing.find((e) => e.pathname === key || e.pathname.endsWith(`/${h}.json`) || e.pathname.endsWith(`${h}.json`));
         const now = new Date().toISOString();
-        const meta = T.visitorMeta(req);
-        const utm = String(p.utm_source || '').slice(0, 60);
-        let rec;
-        if (found) {
-          const prev = (await T.readJson(found)) || {};
-          rec = { ...prev, ...meta, linkedin, hash: h, firstSeen: prev.firstSeen || now, lastSeen: now,
-            visits: (Number(prev.visits) || 0) + 1, utm_source: prev.utm_source || utm };
-        } else {
-          rec = { linkedin, hash: h, firstSeen: now, lastSeen: now, visits: 1, utm_source: utm, ...meta };
-        }
-        await T.putJson(key, rec, { overwrite: true });
-      } catch { /* never break the gate if storage fails */ }
-      return json(res, 200, { ok: true, token });
+        const key = `visitors/${now.slice(0, 10)}/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.json`;
+        await T.putJson(key, { t: now, linkedin, hash: h, utm_source: String(p.utm_source || '').slice(0, 60), ...T.visitorMeta(req) });
+        stored = true;
+      } catch (e) { console.log(JSON.stringify({ app: 'vaanilens', evt: 'visitor_store_failed', error: String(e && e.message) })); }
+      return json(res, 200, { ok: true, token, stored });
     }
 
     // ---- Stats: protected by ?key=STATS_KEY (constant-time). Returns the demo-users list. -----
