@@ -22,6 +22,10 @@ const useBlob = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 // ---- storage abstraction: Vercel Blob in prod, local filesystem in dev --------------------
 let _blob = null;
 async function blobLib() { if (!_blob) _blob = await import('@vercel/blob'); return _blob; }
+// Vercel Blob stores are private by default now, which is right for visitor data (LinkedIn URLs
+// must not be publicly fetchable by URL). Reads use get() with the RW token. Set BLOB_ACCESS=public
+// only if your store is a legacy public store.
+const BLOB_ACCESS = () => (process.env.BLOB_ACCESS === 'public' ? 'public' : 'private');
 
 // Write a JSON file at `key` (e.g. "events/2026-11-10/....json"). Returns true on success.
 async function putJson(key, obj) {
@@ -29,7 +33,7 @@ async function putJson(key, obj) {
   if (useBlob()) {
     const { put } = await blobLib();
     // We only ever write unique keys (append-only), so no overwrite is needed.
-    await put(key, data, { access: 'public', contentType: 'application/json', addRandomSuffix: false, cacheControlMaxAge: 0 });
+    await put(key, data, { access: BLOB_ACCESS(), contentType: 'application/json', addRandomSuffix: false, cacheControlMaxAge: 0 });
     return true;
   }
   const file = path.join(LOCAL_DIR, key);
@@ -66,10 +70,16 @@ async function listKeys(prefix) {
   return out;
 }
 
-// Read a blob's JSON content given the { url } from listKeys (http url in prod, file path in dev).
+// Read a blob's JSON content. In prod, private blobs need get() with the RW token (a plain fetch
+// of the URL would 403). In dev, entry.url is a local file path.
 async function readJson(entry) {
   try {
-    if (useBlob()) { const r = await fetch(entry.url, { cache: 'no-store' }); return await r.json(); }
+    if (useBlob()) {
+      const { get } = await blobLib();
+      const r = await get(entry.pathname, { access: BLOB_ACCESS() });
+      if (!r || !r.blob) return null;
+      return JSON.parse(await r.blob.text());
+    }
     return JSON.parse(fs.readFileSync(entry.url, 'utf8'));
   } catch { return null; }
 }

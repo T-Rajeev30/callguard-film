@@ -30,7 +30,7 @@
     "@remotion/motion-blur": "^4.0.542",
     "@remotion/player": "^4.0.542",
     "@types/react": "^19.3.0",
-    "@vercel/blob": "^0.27.3",
+    "@vercel/blob": "^2.9.0",
     "@vitejs/plugin-react": "^4.7.0",
     "animejs": "^4.0.2",
     "gsap": "^3.12.5",
